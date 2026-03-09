@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Journal App</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/13.0.1/markdown-it.min.css" integrity="sha512-yhX0A2l/pbLxPlzgO/ZpKqdxNkb0kRcfuc0aZ5zEsu7F8/U8cM1pAfY9mC9Wj/0b1lH2F1dKpyrRjEO0ZZZgw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+    body{background:#f4f7fa;color:#333;min-height:100vh;padding:20px;transition:background 0.3s,color 0.3s;}
+    body.dark{background:#1e1e2f;color:#f0f0f0;}
+    .journal-container{width:100%;max-width:900px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.1);padding:20px;display:flex;flex-direction:column;gap:20px;transition:background 0.3s,color 0.3s;}
+    body.dark .journal-container{background:#2b2b3d;color:#f0f0f0;}
+    .journal-header{display:flex;justify-content:space-between;align-items:center;}
+    .journal-header h1{font-weight:700;font-size:1.8rem;}
+    .header-buttons{display:flex;gap:10px;}
+    .header-buttons button{font-size:1.3rem;padding:6px 12px;border:none;border-radius:6px;cursor:pointer;transition:all 0.2s;}
+    #journalText{width:100%;min-height:150px;padding:15px;border-radius:8px;border:1px solid #ddd;font-size:1rem;resize:vertical;transition:background 0.3s,color 0.3s;}
+    body.dark #journalText{background:#3b3b4f;color:#f0f0f0;border:1px solid #555;}
+    .controls{display:flex;justify-content:flex-end;gap:10px;}
+    .controls button{padding:10px 18px;border:none;border-radius:6px;cursor:pointer;font-weight:600;transition:all 0.2s;}
+    .controls button.save{background:#3498db;color:#fff;}
+    .controls button.save:hover{background:#2980b9;}
+    .controls button.clear{background:#e74c3c;color:#fff;}
+    .controls button.clear:hover{background:#c0392b;}
+    #searchInput{width:100%;padding:10px 12px;border-radius:6px;border:1px solid #ccc;font-size:1rem;}
+    body.dark #searchInput{background:#3b3b4f;color:#f0f0f0;border:1px solid #555;}
+    .entries{margin-top:20px;display:flex;flex-direction:column;gap:15px;}
+    .entry{padding:15px;border-radius:10px;background:#f1f4f8;box-shadow:0 4px 10px rgba(0,0,0,0.05);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:grab;transition:background 0.3s,color 0.3s;}
+    body.dark .entry{background:#3b3b4f;color:#f0f0f0;box-shadow:0 4px 10px rgba(0,0,0,0.2);}
+    .entry-text{flex:1;word-wrap:break-word;}
+    .entry-buttons{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+    .entry-buttons button{padding:5px 10px;font-size:0.9rem;border-radius:6px;border:none;cursor:pointer;transition:all 0.2s;}
+    .entry-buttons button.edit{background:#f39c12;color:#fff;}
+    .entry-buttons button.edit:hover{background:#d35400;}
+    .entry-buttons button.delete{background:#e74c3c;color:#fff;}
+    .entry-buttons button.delete:hover{background:#c0392b;}
+    @media(max-width:600px){.journal-header h1{font-size:1.5rem;}button{padding:8px 14px;}}
+</style>
+</head>
+<body>
+<div class="journal-container">
+    <div class="journal-header">
+        <h1>Journal App</h1>
+        <div class="header-buttons">
+            <button class="emoji-picker" title="Add Emoji">😊</button>
+            <button id="toggleDark" title="Toggle Dark Mode">🌙</button>
+        </div>
+    </div>
+    <textarea id="journalText" placeholder="Write your notes here..."></textarea>
+    <div class="controls">
+        <button class="save">Save Entry</button>
+        <button class="clear">Clear All</button>
+    </div>
+    <input type="text" id="searchInput" placeholder="Search entries...">
+    <div class="entries" id="entriesContainer"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    const journalText = document.getElementById('journalText');
+    const saveBtn = document.querySelector('.save');
+    const clearBtn = document.querySelector('.clear');
+    const entriesContainer = document.getElementById('entriesContainer');
+    const emojiBtn = document.querySelector('.emoji-picker');
+    const searchInput = document.getElementById('searchInput');
+    const toggleDark = document.getElementById('toggleDark');
+    const md = window.markdownit();
+
+    let entries = JSON.parse(localStorage.getItem('journalEntries')) || [];
+
+    function saveEntries(){
+        localStorage.setItem('journalEntries', JSON.stringify(entries));
+    }
+
+    function renderEntries(filter=''){
+        entriesContainer.innerHTML='';
+        entries.slice().reverse().filter(e => e.text.toLowerCase().includes(filter.toLowerCase())).forEach(entry => {
+            const div = document.createElement('div');
+            div.classList.add('entry');
+            div.dataset.id = entry.id;
+            div.innerHTML = `
+                <div class="entry-text">${md.render(entry.text)}</div>
+                <div class="entry-buttons">
+                    <button class="edit" onclick="editEntry(${entry.id})">Edit</button>
+                    <button class="delete" onclick="deleteEntry(${entry.id})">Delete</button>
+                </div>
+            `;
+            entriesContainer.appendChild(div);
+        });
+    }
+
+    saveBtn.addEventListener('click', ()=>{
+        const text = journalText.value.trim();
+        if(text){
+            const entry = {id: Date.now(), text};
+            entries.push(entry);
+            saveEntries();
+            journalText.value='';
+            renderEntries(searchInput.value);
+        }else alert('Please write something before saving.');
+    });
+
+    clearBtn.addEventListener('click', ()=>{
+        if(confirm('Are you sure you want to delete all entries?')){
+            entries=[];
+            saveEntries();
+            renderEntries();
+        }
+    });
+
+    emojiBtn.addEventListener('click', ()=>{
+        const emoji = prompt('Enter emoji or copy-paste one:');
+        if(emoji) journalText.value += emoji;
+    });
+
+    function deleteEntry(id){
+        entries = entries.filter(e => e.id !== id);
+        saveEntries();
+        renderEntries(searchInput.value);
+    }
+
+    function editEntry(id){
+        const entry = entries.find(e => e.id===id);
+        if(entry){
+            journalText.value = entry.text;
+            deleteEntry(id);
+        }
+    }
+
+    searchInput.addEventListener('input', (e)=>{
+        renderEntries(e.target.value);
+    });
+
+    // Dark mode toggle
+    toggleDark.addEventListener('click', ()=>{
+        document.body.classList.toggle('dark');
+        toggleDark.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+    });
+
+    // Drag and drop reorder using Sortable.js
+    new Sortable(entriesContainer, {
+        animation:150,
+        onEnd: function(evt){
+            const newOrder = [];
+            entriesContainer.querySelectorAll('.entry').forEach(div=>{
+                const id = parseInt(div.dataset.id);
+                const entry = entries.find(e=>e.id===id);
+                if(entry) newOrder.push(entry);
+            });
+            entries = newOrder.reverse(); // maintain chronological order
+            saveEntries();
+            renderEntries(searchInput.value);
+        }
+    });
+
+    renderEntries();
+</script>
+</body>
+</html>
