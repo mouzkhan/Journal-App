@@ -404,6 +404,9 @@
                 this.updateStats();
                 this.saveCurrentEntry();
             });
+                // Ensure mood selection is loaded for new entry
+                this.selectedMood = null;
+                document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('selected'));
         }
 
         setupEventListeners() {
@@ -420,6 +423,7 @@
 
             document.getElementById('togglePreview').addEventListener('click', () => {
                 this.dom.previewArea.classList.toggle('active');
+                    this.updatePreview();
             });
 
             this.dom.searchInput.addEventListener('input', (e) => {
@@ -427,10 +431,12 @@
             });
 
             this.dom.themeToggle.addEventListener('click', () => {
-                document.body.classList.toggle('dark');
-                const isDark = document.body.classList.contains('dark');
-                this.dom.themeToggle.innerHTML = isDark ? '<i class="ph ph-sun"></i>' : '<i class="ph ph-moon"></i>';
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    document.body.classList.toggle('dark');
+                    const isDark = document.body.classList.contains('dark');
+                    this.dom.themeToggle.innerHTML = isDark ? '<i class="ph ph-sun"></i>' : '<i class="ph ph-moon"></i>';
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    // Update preview for theme
+                    this.updatePreview();
             });
 
             this.dom.moodSelector.addEventListener('click', (e) => {
@@ -439,6 +445,7 @@
                     e.target.classList.add('selected');
                     this.selectedMood = e.target.dataset.mood;
                     this.saveCurrentEntry();
+                        this.renderList(this.dom.searchInput.value);
                 }
             });
 
@@ -452,9 +459,9 @@
                 document.getElementById('closeSidebar').style.display = 'none';
             });
 
-                        document.getElementById('exportBtn').addEventListener('click', () => {
-                this.exportData();
-            });
+                document.getElementById('exportBtn').addEventListener('click', () => {
+                    this.exportData();
+                });
         }
 
         renderList(filter = '') {
@@ -517,12 +524,19 @@
                 };
                 this.entries.push(newEntry);
                 this.currentEntryId = newEntry.id;
+                    // Select mood button visually
+                    document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('selected'));
+                    if (this.selectedMood) {
+                        const moodBtn = Array.from(document.querySelectorAll('.mood-btn')).find(btn => btn.dataset.mood === this.selectedMood);
+                        if (moodBtn) moodBtn.classList.add('selected');
+                    }
             }
 
             try {
                 localStorage.setItem('journalEntries', JSON.stringify(this.entries));
                 this.dom.lastSaved.textContent = "Saved just now";
                 this.renderList(this.dom.searchInput.value);
+                    this.updatePreview();
             } catch (e) {
                 console.error('Error saving entry:', e);
                 this.showToast('Error saving entry', 'error');
@@ -596,6 +610,7 @@
                 downloadAnchorNode.click();
                 downloadAnchorNode.remove();
                 this.showToast('Backup downloaded', 'success');
+                    this.dom.lastSaved.textContent = "Exported just now";
             } catch (e) {
                 console.error('Error exporting data:', e);
                 this.showToast('Error exporting data', 'error');
