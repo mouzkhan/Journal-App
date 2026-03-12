@@ -81,14 +81,22 @@
         }
 
         .brand {
-            font-weight: 700;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--primary);
-        }
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 20px;
+        color: #36379c;
 
+}
+
+.brand-author {
+    font-style: italic;
+    font-size: 12px;
+    color: #888888;
+    font-family: "Playfair Display", serif;
+    margin-left: 4px;
+}
         .search-bar {
             padding: 15px;
             border-bottom: 1px solid var(--border);
@@ -292,8 +300,9 @@
 <div class="app-container">
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="brand">
-                <i class="ph ph-book-open-text"></i> ProJournal
+           <div class="brand">
+               <i class="ph ph-book-open-text"></i>
+                      ProJournal <span class="brand-author">by Mouz</span>
             </div>
             <button class="btn" id="closeSidebar" style="display:none;"><i class="ph ph-x"></i></button>
         </div>
